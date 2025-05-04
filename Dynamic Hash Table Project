@@ -1,0 +1,105 @@
+class DynamicHashTable:
+    def __init__(self, n=100, max_alpha=500, aug_factor=2.0):
+        self.num_buckets = n
+        self.buckets = [[] for _ in range(self.num_buckets)]
+        self.num_items = 0
+        self.max_alpha = max_alpha
+        self.aug_factor = aug_factor
+
+    @property
+    def alpha(self):
+        return self.num_items / self.num_buckets
+
+    def _hash(self, key):
+        hash_value = 0
+        for char in key:
+            hash_value = (hash_value * 31 + ord(char)) % self.num_buckets
+        return hash_value
+
+    def _resize(self):
+        old_buckets = self.buckets
+        self.num_buckets = int(self.num_buckets * self.aug_factor)
+        self.buckets = [[] for _ in range(self.num_buckets)]
+        self.num_items = 0
+
+        for bucket in old_buckets:
+            for key, value in bucket:
+                self.insert(key, value, no_resize = True)
+
+
+    def _get_inx_in_bucket(self, bucket, key):
+        low = 0
+        high = len(bucket) - 1
+
+        while low <= high:
+            mid = (low + high) // 2
+            mid_key = bucket[mid][0]
+            if mid_key == key:
+                return True, mid
+            elif mid_key < key:
+                low = mid + 1
+            else:
+                high = mid - 1
+        return False, high + 1
+
+    def insert(self, key, value, no_resize=False):
+
+        hash_index = self._hash(key)
+        bucket = self.buckets[hash_index]
+
+        found, inx = self._get_inx_in_bucket(bucket, key)
+
+        if found:
+            bucket[inx] = [key, value]
+        else:
+            bucket.insert(inx, [key, value])
+            self.num_items += 1
+
+        if not no_resize:
+            if self.alpha > self.max_alpha:
+                self._resize()
+                                
+    def search(self, key):
+        hash_index = self._hash(key)
+        bucket = self.buckets[hash_index]
+        found, inx = self._get_inx_in_bucket(bucket, key)
+        
+        if found:
+            return bucket[inx][1]
+        else:
+            return None
+
+    def __str__(self):
+        output = []
+        for i, bucket in enumerate(self.buckets):
+            keys = [k for k, _ in bucket]
+            output.append(f"Bucket {i}: {keys}")
+        return "\n".join(output)
+
+import random
+data = []
+with open("user_activity_data.csv", "r", encoding="utf-8") as f:
+    for line in f:
+        line = line.strip()
+        if line:
+            parts = line.split(',')
+            if len(parts) == 2: #not necessary
+                user_id = parts[0]
+                try:
+                    upload_count = int(parts[1])
+                    data.append((user_id, upload_count))
+                except ValueError:
+                    continue
+# shuffle the data                      
+random.shuffle(data)
+
+# preview a sample 
+
+print('sample of 10 records is')
+
+for row in data[:10]:
+    print(row)
+
+
+
+
